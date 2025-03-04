@@ -16,3 +16,52 @@ format:
       code-fold: true
       html-math-method: katex
 ---
+
+# Introduction
+
+The midterm project of Stat-3255 tasks us with telling a story of NYC Open Data
+311 Service Requests. More specficially Street Flooding (SF) and Catch Basin
+(CB) complaints. SF complaints indicates instances of street flooding, while BC
+complaints indicate instances of catch basin drains failing to properly drain. 
+This could be caused by several reasons, most commonly due to drain blockages.
+
+
+
+# Importing and Cleaning Data 
+
+To start we must properly import our data file and clean where necessary. 
+
+Import Data
+```{python}
+
+# Import necessary packages
+import pandas as pd
+import numpy as np
+import os 
+
+# Initialize file path to variable 'file'
+csv_file = 'nycflood2024.csv'
+
+# Read csv file
+nyc_flood = pd.read_csv(csv_file)
+
+# Print first 5 rows, get familiar with dataframe
+print(nyc_flood.head())
+
+# Take all column names and properly format
+nyc_flood.columns = nyc_flood.columns.str.replace(' ','_').str.lower()
+
+# Summarize missing data in columns
+for x in nyc_flood.columns:
+    print(f'There are {nyc_flood[x].isnull().sum()} missing values in {x}')
+
+# Convert data into arrow format
+feather_file = 'nyc_flood_feather.feather'
+nyc_flood.to_feather(feather_file)
+nyc_flood_feather = pd.read_feather(feather_file)
+
+# See difference in sizes between feather and csv files
+print(f'CSV file size: {os.path.getsize(csv_file) / (1024 * 1024)} MB')
+print(f'Feather file size: {os.path.getsize(feather_file) / (1024 * 1024)} MB')
+
+```
