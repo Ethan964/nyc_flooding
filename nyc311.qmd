@@ -19,17 +19,22 @@ format:
 
 # Introduction
 
-The midterm project of Stat-3255 tasks us with telling a story of NYC Open Data
-311 Service Requests. More specficially Street Flooding (SF) and Catch Basin
-(CB) complaints. SF complaints indicates instances of street flooding, while BC
-complaints indicate instances of catch basin drains failing to properly drain. 
-This could be caused by several reasons, most commonly due to drain blockages.
+The midterm project of Stat-3255 tasks us with telling a story with NYC Open 
+Data 311 Service Requests. More specficially Street Flooding (SF) and Catch 
+Basin (CB) complaints. SF complaints indicates instances of street flooding, 
+while BC complaints indicate instances of catch basin drains failing to 
+properly drain. This could be caused by several reasons, most commonly due to 
+drain blockages.
 
 
 
 # Data Cleaning 
 
-To start we must properly import our data file and clean where necessary. 
+
+## Importing File and Getting Familiar With Dataset
+
+To start we must properly import our data file and clean where necessary.
+We will do this in several steps. 
 
 Import Data
 ```{python}
@@ -55,6 +60,18 @@ nyc_flood.columns = nyc_flood.columns.str.replace(' ','_').str.lower()
 for x in nyc_flood.columns:
     print(f'There are {nyc_flood[x].isnull().sum()} missing values in {x}')
 
+```
+
+
+##  Converting File Type in Arrow Format for Storage Optimization
+
+We have imported a rather large .csv file and I wish to convert it into a more
+efficient file type. Arrow provides us with exactly that, so I will create a
+new filepath and convert the .csv file into feather format. I will show the 
+amount of space we will save while using the feather file instead of the .csv.
+
+```{python}
+
 # Convert data into arrow format
 feather_file = 'nyc_flood_feather.feather'
 nyc_flood.to_feather(feather_file)
@@ -66,18 +83,25 @@ print(f'Feather file size: {os.path.getsize(feather_file) / (1024 * 1024)} MB')
 
 ```
 
+
 ## Finding and Dropping Redundant Columns
+
+At first glance of the dataframe preview, we can see countless columns with 
+either suspicous amounts of missing data or redundant natures. We will explore
+numerous columns and see if they are needed for our purposes. 
 
 ```{python}
 
 # Find redundant columns
 
-# Noticed how the first five entries where of the same agency
-# Tested to see if the entire column is the 'Department of 
-# Environmental Protection'
+# Noticed how the first five entries in agency_name and complaint 
+# type are identical. Tested to see if the entire column is the 'Department of 
+# Environmental Protection' and 'Sewer' as complaint type
+
 
 print(nyc_flood_feather['agency_name'].value_counts())
-# Every entry is identical, no need to keep the column
+print(nyc_flood_feather['complaint_type'].value_counts())
+# Every entry is identical, no need to keep the columns
 
 # Identify any empty columns
 for x in nyc_flood.columns:
@@ -85,25 +109,31 @@ for x in nyc_flood.columns:
 
 # The following columns are completely empty: 
 # location_type, landmark, facility_type, due_date, vehicle_type,
-#  taxi_company_borough, taxi_pick_up_location, 
+# taxi_company_borough, taxi_pick_up_location, 
 # bridge_highway_name, bridge_highway_direction, road_ramp, 
 # bridge_highway_segment
 
 # From my prior experience with NYC Open Data, the 'location' is 
 # redundant as it contains longitude and latitude coordinates which
-#  have already been given
+# has already been given
 
 # Drop all columns deemed unnecessary
-nyc_flood_feather.drop(columns=['agency_name', 'location_type', 'landmark', 'facility_type', 'due_date', 'vehicle_type', 'taxi_company_borough', 'taxi_pick_up_location', 'bridge_highway_name', 'bridge_highway_direction', 'road_ramp', 'bridge_highway_segment'], inplace=True)
+nyc_flood_feather.drop(columns=['agency_name', 'complaint_type', 'location_type', 'landmark', 'facility_type', 'due_date', 'vehicle_type', 'taxi_company_borough', 'taxi_pick_up_location', 'bridge_highway_name', 'bridge_highway_direction', 'road_ramp', 'bridge_highway_segment'], inplace=True)
 
 # Get summary of new data
 print(nyc_flood_feather.head())
 
 ```
 
+
 ## Finding Invalid Values of NYC Zipcodes or Boroughs
 
+
 ### Familiarize With the Two Columns in Question
+
+If we are to validate and clean these two columns, we must get comfortable with
+both's data and nature. Lets take a preview of the two columns and get a rough
+idea what kind of data these columns house.
 
 ```{python}
 
@@ -117,15 +147,17 @@ print(nyc_flood_feather['borough'].value_counts())
 # Find the amount of incidents missing zip
 print(nyc_flood_feather['borough'].value_counts())
 
-
-``` 
+```
 
 
 ### Drop the Rows in the Two Columns With Messy Entries
 
+Using our recently gained insights on the contents of both the borough and 
+zip code columns, we will drop the rows that contain data we don't want. 
 
 ```{python}
-# Borough data looks clean besides 2 rows missing
+
+# Borough column looks clean besides 2 rows missing
 # Zip data looks clean as only 4 are missing entries
 # Extremely small sample, we can just drop the 6 total rows
 nyc_flood_feather = nyc_flood_feather[nyc_flood_feather['borough'] != 'Unspecified']
@@ -133,11 +165,19 @@ nyc_flood_feather = nyc_flood_feather[nyc_flood_feather['incident_zip'].notnull(
 
 # Double check that the two columns are clean
 print(nyc_flood_feather['borough'].value_counts())
-print(nyc_flood_feather['borough'].value_counts())
+print(nyc_flood_feather['incident_zip'].isnull().sum())
 
 ```
 
+
 ### Check Zip Codes For Their Validity
+
+We need to check each zip code's validity as our prior experience with NYC's 
+Open Data has exposed a slight tendancy to insert invalid zip codes throughout
+the data. This most likely occurs through human error and is relatively 
+harmless. But as I anticipate myself heavily using zip code data later in this
+project, I will drop any row housing an invalid NYC zip code. 
+
 
 ```{python}
 
@@ -163,21 +203,30 @@ valid_nyc_zcs = [
     11691, 11692, 11693, 11694, 11695, 11697
 ]
 
+# Set value of initial list length
 initial_len = len(nyc_flood_feather)
-
 print(f'Rows before checking validity of zips: {len(nyc_flood_feather)}')
 
+# Set dataframe to itself but omit all rows with missing zips
 nyc_flood_feather = nyc_flood_feather[nyc_flood_feather['incident_zip'].isin(valid_nyc_zcs)]
 
+# Set value of post-parsing list length
 post_len = len(nyc_flood_feather)
-
 print(f'Rows after checking validity of zips: {len(nyc_flood_feather)}')
 
+# Show the amount of rows dropped
 print(f' There were {initial_len - post_len} rows dropped')
 
 ```
 
-## Checking for Possible Date Errors
+## Checking for Possible Dating Errors
+
+The possible dating errors we need to check for in this dataset are as follows:
+
+1. If the 'closed_date' occurs before the 'created_date'
+1. If the 'closed_date' occurs at the same time as 'created_date'
+1. If the two dates occur at exactly midnight
+1. If the two dates occur at exactly noon
 
 ```{python}
 
@@ -211,5 +260,27 @@ print(f'Number of dating errors found in the dataset: {dating_error_count}')
 ## Dropping Rows Featuring Date Errors
 
 Since there are 159 rows with dating errors, I believe that the best course of 
-action is to drop the rows. The dataset is over 9,000 rows long and I don't
-believe dropping %1.7 of the dataset will significantly impact anything.
+action is to drop the rows. The dataset spans over 9,000 rows long and I don't
+believe dropping 1.7% of the dataset will significantly impact our findings.
+
+```{python}
+
+rows_to_remove = (
+      (nyc_flood_feather['closed_date'] < nyc_flood_feather['created_date']) | 
+    # Then check rows where the times are exactly the same
+    (nyc_flood_feather['closed_date'] == nyc_flood_feather['created_date']) |
+    ( # Then find when the times occur exactly at midnight
+        (nyc_flood_feather['closed_date'].dt.time == midnight) & 
+        (nyc_flood_feather['created_date'].dt.time == midnight)
+    ) | 
+    ( # Then find when the times occur exactly at noon
+        (nyc_flood_feather['closed_date'].dt.time == noon) & 
+        (nyc_flood_feather['created_date'].dt.time == noon)
+    )
+)
+
+nyc_flood_feather = nyc_flood_feather[~rows_to_remove]
+print(f' Dataset length before data cleaning: {len(nyc_flood)}')
+print(f' Dataset length after data cleaning: {len(nyc_flood_feather)}')
+
+```
