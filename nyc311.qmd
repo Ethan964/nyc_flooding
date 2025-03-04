@@ -1,0 +1,18 @@
+---
+title: 'Stat 3255 Midterm Project: Analysis of NYC Open Data of 311 Service Requests'
+author: 'Ethan Long'
+toc: true
+number-sections: true
+highlight-style: pygments
+format: 
+  pdf: 
+    documentclass: article
+    number-sections: true
+    toc: true
+    geometry:
+      - top=30mm
+      - left=20mm
+    html:
+      code-fold: true
+      html-math-method: katex
+---
