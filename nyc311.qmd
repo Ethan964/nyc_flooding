@@ -257,7 +257,7 @@ print(f'Number of dating errors found in the dataset: {dating_error_count}')
 
 ```
 
-## Dropping Rows Featuring Date Errors
+### Dropping Rows Featuring Date Errors
 
 Since there are 159 rows with dating errors, I believe that the best course of 
 action is to drop the rows. The dataset spans over 9,000 rows long and I don't
@@ -284,3 +284,21 @@ print(f' Dataset length before data cleaning: {len(nyc_flood)}')
 print(f' Dataset length after data cleaning: {len(nyc_flood_feather)}')
 
 ```
+
+## Suggestions to the Data Curator 
+
+From my experience working with the 311 Service Request dataset, I can conclude
+that the dataset is a thoughtful, well-rounded dataset that has no major flaws. 
+But I believe there are minor tweaks that can be made to improve and optimize
+the dataset. To begin there are several columns that are completely empty. 
+I don't know whether or not these columns are useful, but I do know that 
+they are completely empty. They take up valuable storage space and could 
+unneccesarily slow down computing speed. There are 11 of these columns that are
+completely empty and therefore obsolete. Secondly there are two columns that 
+feature the same entry for all ~9,000 rows. Another example of columns taking 
+up storage space and not offering any valuable insights. These two rows,
+agency_name & complaint_type, should be omitted in future datasets, unless they
+offer variation. Lastly, there are a couple of instances where rows feature
+invalid NYC zip codes, empty borough entries, and dating errors. There are only
+around ~150 instance of this occuring, making it only a minor problem, but 
+something that should be addressed nonetheless. 
