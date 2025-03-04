@@ -27,7 +27,7 @@ This could be caused by several reasons, most commonly due to drain blockages.
 
 
 
-# Importing and Cleaning Data 
+# Data Cleaning 
 
 To start we must properly import our data file and clean where necessary. 
 
@@ -101,9 +101,9 @@ print(nyc_flood_feather.head())
 
 ```
 
-# Finding Invalid Values of NYC Zipcodes or Boroughs
+## Finding Invalid Values of NYC Zipcodes or Boroughs
 
-## Familiarize With the Two Columns in Question
+### Familiarize With the Two Columns in Question
 
 ```{python}
 
@@ -121,7 +121,7 @@ print(nyc_flood_feather['borough'].value_counts())
 ``` 
 
 
-## Drop the Rows in the Two Columns With Messy Entries
+### Drop the Rows in the Two Columns With Messy Entries
 
 
 ```{python}
@@ -137,7 +137,7 @@ print(nyc_flood_feather['borough'].value_counts())
 
 ```
 
-## Check Zip Codes For Their Validity
+### Check Zip Codes For Their Validity
 
 ```{python}
 
@@ -177,17 +177,39 @@ print(f' There were {initial_len - post_len} rows dropped')
 
 ```
 
-# Checking for Possible Date Errors
+## Checking for Possible Date Errors
 
 ```{python}
 
 # Convert the columns to datetime format for efficiency
-nyc_flood_feather['close_date'] = pd.to_datetime(nyc_flood_feather['closed_date'])
+nyc_flood_feather['closed_date'] = pd.to_datetime(nyc_flood_feather['closed_date'])
 nyc_flood_feather['created_date'] = pd.to_datetime(nyc_flood_feather['created_date'])
 
-# First check rows where closed_date is earlier than created_date
-dating_error_count = nyc_flood_feather[nyc_flood_feather['closed_date'] < nyc_flood_feather['created_date']].sum()
+# Since we are comparing times to noon & midnight, lets define the two times
+noon = pd.to_datetime('00:00:00').time()
+midnight = pd.to_datetime('12:00:00').time()
 
+# First check rows where closed_date is earlier than created_date
+dating_error_count = (
+    (nyc_flood_feather['closed_date'] < nyc_flood_feather['created_date']) | 
+    # Then check rows where the times are exactly the same
+    (nyc_flood_feather['closed_date'] == nyc_flood_feather['created_date']) |
+    ( # Then find when the times occur exactly at midnight
+        (nyc_flood_feather['closed_date'].dt.time == midnight) & 
+        (nyc_flood_feather['created_date'].dt.time == midnight)
+    ) | 
+    ( # Then find when the times occur exactly at noon
+        (nyc_flood_feather['closed_date'].dt.time == noon) & 
+        (nyc_flood_feather['created_date'].dt.time == noon)
+    )
+).sum()
+
+print(f'Number of dating errors found in the dataset: {dating_error_count}')
 
 ```
 
+## Dropping Rows Featuring Date Errors
+
+Since there are 159 rows with dating errors, I believe that the best course of 
+action is to drop the rows. The dataset is over 9,000 rows long and I don't
+believe dropping %1.7 of the dataset will significantly impact anything.
