@@ -65,3 +65,38 @@ print(f'CSV file size: {os.path.getsize(csv_file) / (1024 * 1024)} MB')
 print(f'Feather file size: {os.path.getsize(feather_file) / (1024 * 1024)} MB')
 
 ```
+
+## Finding and Dropping Redundant Columns
+
+```{python}
+
+# Find redundant columns
+
+# Noticed how the first five entries where of the same agency
+# Tested to see if the entire column is the 'Department of 
+# Environmental Protection'
+
+print(nyc_flood_feather['agency_name'].value_counts())
+# Every entry is identical, no need to keep the column
+
+# Identify any empty columns
+for x in nyc_flood.columns:
+    print(f'There are {nyc_flood[x].isnull().sum()} missing values in {x}')
+
+# The following columns are completely empty: 
+# location_type, landmark, facility_type, due_date, vehicle_type,
+#  taxi_company_borough, taxi_pick_up_location, 
+# bridge_highway_name, bridge_highway_direction, road_ramp, 
+# bridge_highway_segment
+
+# From my prior experience with NYC Open Data, the 'location' is 
+# redundant as it contains longitude and latitude coordinates which
+#  have already been given
+
+# Drop all columns deemed unnecessary
+nyc_flood_feather.drop(columns=['agency_name', 'location_type', 'landmark', 'facility_type', 'due_date', 'vehicle_type', 'taxi_company_borough', 'taxi_pick_up_location', 'bridge_highway_name', 'bridge_highway_direction', 'road_ramp', 'bridge_highway_segment'], inplace=True)
+
+# Get summary of new data
+print(nyc_flood_feather.head())
+
+```
