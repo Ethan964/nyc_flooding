@@ -337,3 +337,131 @@ ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.OpenStreetMap.Mapnik)
 plt.show()
 
 ```
+
+
+## Creating 'response_time' Variable
+
+I will now create a new variable and house it in the 'response_time' column. 
+This column will track the time it takes for the 311 Service Complaint to get
+resolved. This column will house numerical values. 
+
+```{python}
+
+# Create new column for the difference between the two times
+nyc_flood_feather['response_time'] = nyc_flood_feather['closed_date'] - nyc_flood_feather['created_date']
+
+print(nyc_flood_feather['response_time'].head())
+
+```
+
+
+## Visualize Reponse Times by Complaint Descriptor and Borough
+
+We will use several histograms for this visualization. We will have 10 
+histograms for each of the five boroughs and for the two types of complaint
+descriptors, Street Flooding (SJ) and Catch Basin Clogging (SC).  
+
+
+### Visualizing the Distribution of Response Times
+
+To be able to create accurate and informative histograms, I will create a graph
+that will show the distribution of response time in hours. Depending on what
+it looks like, I will drop certain outliers and adjust the bins of the 
+histograms. 
+
+```{python}
+
+# Import necessary packages
+from plotnine import geom_boxplot
+
+# Convert response_time from datetime to num
+nyc_flood_feather['response_time'] = pd.to_timedelta(nyc_flood_feather['response_time'])
+
+# Create new column that tracks respone time in hours
+nyc_flood_feather['response_time_hours'] = nyc_flood_feather['response_time'].dt.total_seconds() / 3600
+
+boxplot = (
+    ggplot(nyc_flood_feather, aes(x='borough', y='response_time_hours'))
+    + geom_boxplot(fill='blue', alpha=0.7) 
+    + labs(
+        title='Distribution of Response Times: Boxplot',
+        x='Borough',
+        y='Response Time (Hours)'
+    )
+    + theme_minimal()
+)
+
+print(boxplot)
+
+```
+
+From the boxplots we can immediately point out a key insight. Every borough,
+besides Queens, has response times within 2,000 hours. Queens has hundreds of 
+311 requests that took more that 4,000 hours to be settled, with some taking 
+over 6,000 hours to resolve. Whether or not those 311 requests actually took 
+years to be solved, these outliers would serve no purpose other than to throw 
+off the normality in our dataset, thus they will be removed. 
+
+```{python}
+
+print(f'Data set length before outliers are dropped: {len(nyc_flood_feather)}')
+
+# Drop the rows where response time > 4000 hours
+nyc_flood_feather = nyc_flood_feather[nyc_flood_feather['response_time_hours'] < 4000]
+
+# Verify Actions
+print(f'Data set length after outliers are dropped: {len(nyc_flood_feather)}')
+
+```
+
+
+### Split the Dataset By Their Descriptors
+
+First step in creating the histograms is splitting the data by their complaint
+descriptor. The two types of complaints are 'Street Flooding (SJ)' and 
+'Catch Basin Clogged/Flooding'. Splitting the data into two groups will not only
+help us create the histograms, but will also help us conduct tests on possible
+inequalities in complaints.
+
+```{python}
+
+# Find the exact complaints
+print(nyc_flood_feather['descriptor'].value_counts())
+
+# Set descriptor to respective variable
+flooding = 'Street Flooding (SJ)'
+basin = 'Catch Basin Clogged/Flooding (Use Comments) (SC)'
+
+# Split the data by their complaint descriptor
+nyc_street_floods = nyc_flood_feather[nyc_flood_feather['descriptor'] == flooding]
+nyc_basin_floods = nyc_flood_feather[nyc_flood_feather['descriptor'] == basin]
+
+# Validate that the dataset properly split
+print(nyc_street_floods.head())
+print(nyc_basin_floods.head())
+
+```
+
+
+```{python}
+
+# Set the bins to the appropriate values
+bins = list(np.arange(0, nyc_flood_feather['response_time_hours'].max() + 6, 6))
+
+
+histogram = (
+    ggplot(nyc_flood_feather, aes(x='response_time_hours'))
+    + geom_histogram(bins=bins, fill='blue', color='white', alpha=0.5)
+    + labs(
+        title='Response Times by Complaint Type and Borough',
+        x='Response Time (hours)',
+        y='Number of 311 Service Requests'
+    )
+    + facet_wrap('borough')
+    + theme_minimal()
+)
+
+histogram
+
+```
+
