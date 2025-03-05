@@ -302,3 +302,38 @@ offer variation. Lastly, there are a couple of instances where rows feature
 invalid NYC zip codes, empty borough entries, and dating errors. There are only
 around ~150 instance of this occuring, making it only a minor problem, but 
 something that should be addressed nonetheless. 
+
+# Exploratory Analysis of Dataset
+
+## Overlay Locations of Complaints onto a Map of NYC
+
+To properly achieve this graphic, we will need to leverage python package:
+contextily. We will grab an appropriate map of NYC and use each 311 Request's
+longitude and latitude to plot each point. 
+
+```{python}
+
+# Import necessary packages
+import contextily as ctx
+import matplotlib.pyplot as plt
+
+# Make sure coordinates are in numeric
+nyc_flood_feather['longitude'] = pd.to_numeric(nyc_flood_feather['longitude'], errors = 'coerce')
+nyc_flood_feather['latitude'] = pd.to_numeric(nyc_flood_feather['latitude'], errors = 'coerce')
+
+# Initialize plot
+fig, ax = plt.subplots(figsize=(10,10))
+
+# Create scatterplot with longitude along the x, latitude along the y
+ax.scatter(nyc_flood_feather['longitude'], nyc_flood_feather['latitude'], color='blue', alpha=0.5, s=10, label='311 Service Complaints')
+
+# Label axis and title graph
+plt.xlabel('Longitude', fontdict={'family':'serif', 'color':'darkred','size': 20})
+plt.ylabel('Latitude', fontdict={'family':'serif', 'color':'darkred', 'size':20})
+plt.title('Map of 311 Service Complaints: Flooding', fontdict={'family':'serif', 'color': 'darkred', 'size':30})
+
+# Overlay map of NYC over the plot
+ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.OpenStreetMap.Mapnik)
+plt.show()
+
+```
