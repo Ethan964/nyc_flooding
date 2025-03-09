@@ -637,16 +637,25 @@ present themselves.
 # Lets create a few new variables that could help us improve our model
 # First lets create a column that only includes the hour in which the service
 # complaint was created
-nyc_flood_feather['request_hour'] = nyc_flood_feather['created_time'].dt.hour
+nyc_flood_feather.loc[:, 'request_hour'] = nyc_flood_feather['created_date'].dt.hour
+
+# Next lets create a variable that indicates if complaint was made during rush hour
+nyc_flood_feather.loc[:,'rush_hour'] = ((nyc_flood_feather['request_hour'] >= 7) & (nyc_flood_feather['request_hour'] <= 9)) | ((nyc_flood_feather['request_hour'] >= 16) & (nyc_flood_feather['request_hour'] <= 19))
+
+# Convert from boolean to int
+nyc_flood_feather['rush_hour'] = nyc_flood_feather['rush_hour'].astype(int)
 
 
-nyc_flood_feather['rush_hour'] = ((nyc_flood_feather['request_hour'] >= 7) & (nyc_flood_feather['request_hour'] <= 9)) | ((nyc_flood_feather['request_hour'] >= 16) & (nyc_flood_feather['request_hour'] <= 19))
+# Next we will create a variable to track whether complaint was created during
+# the weekend
+# Initialize the column to false
+nyc_flood_feather.loc[:, 'weekend'] = False
 
-nyc_flood_feather['weekend'] = nyc_flood_feather[]
+# If the date is on a Saturday or Sunday the row turns to true
+nyc_flood_feather.loc[nyc_flood_feather['created_date'].dt.weekday >= 5, 'weekend'] = True
 
-nyc_flood_feather['weekday']
-
-
+# Convert the column from boolean to int.
+nyc_flood_feather['weekend'] = nyc_flood_feather['weekend'].astype(int)
 
 
 ```
