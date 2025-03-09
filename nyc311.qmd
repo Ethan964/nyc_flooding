@@ -749,6 +749,7 @@ Also, due to the dangers of multicolinearity occuring, we must drop the first
 dummy variables for descriptors and boroughs. This limits the scope of our 
 analysis, but ensures our analysis will be accurate. 
 
+
 **Complaint Descriptor**
 
 As the p-value for the street flooding covariate is extremely small and has a 
@@ -757,12 +758,14 @@ null hypothesis. There is sufficient evidence to conclude that the complaint
 descriptor has a significant impact on response times taking over 3 days to 
 resolve. 
 
+
 **Borough**
 
 Each borough holds differing p-values and confidence intervals, but all pass
 the criterea to reject the null hypothesis. There is sufficient evidence to 
 suggest that borough has a significant impact on response times taking over 3
 days to resolve.
+
 
 **Weekday vs Weekend**
 
@@ -771,9 +774,30 @@ sufficient evidence to reject the null hypothesis. There is sufficient
 evidence to suggest that complaints being submited during the weekend impacts
 response times taking over 3 days to resolve. 
 
+
 **Rush Hour**
 
 As the p-value for the rush hour covariate is extremely large, 0.936, there
 is not sufficient evidence to reject the null hypothesis. There is not to 
 sufficient evidence to suggest that complaints being submitted during rush 
 hours doesn't impact response times taking over 3 days to resolve. 
+
+
+# Modeling the Occurances of Overly Long Response Times
+
+## Creating Dataset for New Logistical Modeling
+
+We will pivot into further logistical modeling of the 'over3d' variable. We
+used four covariates in our past iteration of the model, but I plan to refine 
+and readjust those covariates. I will add several new covariates and eliminate
+others that the model deems not useful. 
+
+```{python}
+
+print(nyc_flood_feather.head())
+
+lm_data = nyc_flood_feather['over3d', 'descriptor', 'borough', 'weekend', 'longitude', 'latitude'].copy()
+
+
+
+```
