@@ -626,3 +626,27 @@ print(over3d_bf_histogram)
 
 Before looking at the histograms, I believe that the same patterns will 
 present themselves.
+
+
+## Fitting Logistical Model with 'over3d' As Predictor Variable
+
+
+
+```{python}
+
+# Lets create a few new variables that could help us improve our model
+# First lets create a column that only includes the hour in which the service
+# complaint was created
+nyc_flood_feather['request_hour'] = nyc_flood_feather['created_time'].dt.hour
+
+
+nyc_flood_feather['rush_hour'] = ((nyc_flood_feather['request_hour'] >= 7) & (nyc_flood_feather['request_hour'] <= 9)) | ((nyc_flood_feather['request_hour'] >= 16) & (nyc_flood_feather['request_hour'] <= 19))
+
+nyc_flood_feather['weekend'] = nyc_flood_feather[]
+
+nyc_flood_feather['weekday']
+
+
+
+
+```
