@@ -630,13 +630,22 @@ present themselves.
 
 ## Fitting Logistical Model with 'over3d' As Predictor Variable
 
-
+To further understand the 'over3d' variable, we will use logistical regression
+to test if certain variables have significant effects on response time. The 
+covariates we will use are complaint descriptor, borough, time of day, and weekday vs 
+weekend. To start we will have to create two new columns, weekend and rush hour. 
 
 ```{python}
 
+# Convert created_date column to datetime
+nyc_flood_feather['created_date']  = pd.to_datetime(nyc_flood_feather['created_date'], errors='coerce')
+
+# Drop any columns with invalid entries to 'created_date'
+nyc_flood_feather = nyc_flood_feather.dropna(subset=['created_date']).copy()
+
 # Lets create a few new variables that could help us improve our model
 # First lets create a column that only includes the hour in which the service
-# complaint was created
+# complaint was created: 
 nyc_flood_feather.loc[:, 'request_hour'] = nyc_flood_feather['created_date'].dt.hour
 
 # Next lets create a variable that indicates if complaint was made during rush hour
@@ -645,17 +654,126 @@ nyc_flood_feather.loc[:,'rush_hour'] = ((nyc_flood_feather['request_hour'] >= 7)
 # Convert from boolean to int
 nyc_flood_feather['rush_hour'] = nyc_flood_feather['rush_hour'].astype(int)
 
-
 # Next we will create a variable to track whether complaint was created during
 # the weekend
 # Initialize the column to false
 nyc_flood_feather.loc[:, 'weekend'] = False
 
 # If the date is on a Saturday or Sunday the row turns to true
-nyc_flood_feather.loc[nyc_flood_feather['created_date'].dt.weekday >= 5, 'weekend'] = True
+nyc_flood_feather.loc[nyc_flood_feather['created_date'].dt.weekday >= 1, 'weekend'] = True
 
 # Convert the column from boolean to int.
 nyc_flood_feather['weekend'] = nyc_flood_feather['weekend'].astype(int)
 
+# Test if the columns were properly generated
+print(nyc_flood_feather['rush_hour'].head())
+print(nyc_flood_feather['weekend'].head())
 
 ```
+
+
+Hypothesis: 
+
+**Complaint Descriptor**
+
+H0: The complaint descriptor has no effect on whether a 311 complaint takes 3
+days or longer to be addressed.
+
+HA: The complaint descriptor has a significant effeect on whether a 311 
+complaint takes 3 days or longer to be addressed.
+
+**Borough**
+
+H0: The borough has no effect on whether a 311 complaint takes 3 days or longer
+to be addressed.
+
+HA: The borough has a significant effeect on whether a 311 complaint takes 3 
+days or longer to be addressed.
+
+**Weekday vs Weekend**
+
+H0: The day of the week has no effect on whether a 311 complaint takes 3 days 
+or longer to be addressed.
+
+HA: The day of the week has a significant effeect on whether a 311 complaint 
+takes 3 days or longer to be addressed.
+
+**Rush Hour**
+
+H0: Rush hour has no effect on whether a 311 complaint takes 3 days or longer
+to be addressed.
+
+HA: Rush hour has a significant effeect on whether a 311  complaint takes 3 
+days or longer to be addressed.
+
+
+```{python}
+
+# Import necessary packages
+import statsmodels.api as sm
+
+# Initialize desired data to variable 'data'
+data = nyc_flood_feather[['over3d','descriptor', 'weekend', 'borough', 'rush_hour']].copy()
+
+# Create dummy variables for columns with strings
+data = pd.get_dummies(data, columns = ['descriptor', 'borough'], drop_first=True)
+
+# Turn those dummy variable dtypes from booleans to ints.
+data = data.astype(int)
+
+# Add cosntant for y-intercept
+data = sm.add_constant(data)
+
+# Set variables for model to desired data 
+X = data.drop(columns=['over3d'])
+y = data['over3d']
+
+# Fit model and get results of model
+model = sm.Logit(y, X)
+result = model.fit()
+
+# Print the summary of model
+print(result.summary())
+
+```
+
+
+### Interpreting Results of Model
+
+To reach a conclusion for all four hypotheses, we will look at each covariates'
+p-value and confidence interval. The general rule of thumb is if the covariate
+has a p-value less than 0.05 or a confidence interval containing 0, we have 
+sufficient evidence to reject the null hypothesis. Lets begin:
+
+Also, due to the dangers of multicolinearity occuring, we must drop the first
+dummy variables for descriptors and boroughs. This limits the scope of our 
+analysis, but ensures our analysis will be accurate. 
+
+**Complaint Descriptor**
+
+As the p-value for the street flooding covariate is extremely small and has a 
+confidence interval not including 0, we have sufficient evidence to reject the
+null hypothesis. There is sufficient evidence to conclude that the complaint
+descriptor has a significant impact on response times taking over 3 days to 
+resolve. 
+
+**Borough**
+
+Each borough holds differing p-values and confidence intervals, but all pass
+the criterea to reject the null hypothesis. There is sufficient evidence to 
+suggest that borough has a significant impact on response times taking over 3
+days to resolve.
+
+**Weekday vs Weekend**
+
+As the p-value for the weekend covariate is extremely small, there is
+sufficient evidence to reject the null hypothesis. There is sufficient 
+evidence to suggest that complaints being submited during the weekend impacts
+response times taking over 3 days to resolve. 
+
+**Rush Hour**
+
+As the p-value for the rush hour covariate is extremely large, 0.936, there
+is not sufficient evidence to reject the null hypothesis. There is not to 
+sufficient evidence to suggest that complaints being submitted during rush 
+hours doesn't impact response times taking over 3 days to resolve. 
