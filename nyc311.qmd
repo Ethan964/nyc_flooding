@@ -303,7 +303,7 @@ invalid NYC zip codes, empty borough entries, and dating errors. There are only
 around ~150 instance of this occuring, making it only a minor problem, but 
 something that should be addressed nonetheless. 
 
-# Exploratory Analysis of Dataset
+# Exploratory Analysis of 311 Service Requests
 
 ## Overlay Locations of Complaints onto a Map of NYC
 
@@ -372,7 +372,7 @@ histograms.
 ```{python}
 
 # Import necessary packages
-from plotnine import geom_boxplot
+from plotnine import geom_boxplot, ggplot, aes, labs, theme_minimal
 
 # Convert response_time from datetime to num
 nyc_flood_feather['response_time'] = pd.to_timedelta(nyc_flood_feather['response_time'])
@@ -443,17 +443,25 @@ print(nyc_basin_floods.head())
 ```
 
 
+### Creating Histograms of Each Borough Service Request Response Times
+
+To see if there are differences in response times for the two types of 311 
+complaints, we will create two sets of histograms that will visualize the 
+response times for every 311 complaint in each borough. We will use the data
+sets created in the prior cell that house all 311 complaints from their
+respective descriptors. 
+
 ```{python}
 
-# Set the bins to the appropriate values
-bins = list(np.arange(0, nyc_flood_feather['response_time_hours'].max() + 6, 6))
+# Import necessary packages
+from plotnine import geom_histogram, facet_wrap
 
-
-histogram = (
-    ggplot(nyc_flood_feather, aes(x='response_time_hours'))
-    + geom_histogram(bins=bins, fill='blue', color='white', alpha=0.5)
+# Create the first histogram for street flooding complaints
+sf_histogram = (
+    ggplot(nyc_street_floods, aes(x='response_time_hours'))
+    + geom_histogram(binwidth=6, fill='blue', color='white', alpha=0.5)
     + labs(
-        title='Response Times by Complaint Type and Borough',
+        title='Response Times for Street Flooding by Borough',
         x='Response Time (hours)',
         y='Number of 311 Service Requests'
     )
@@ -461,7 +469,160 @@ histogram = (
     + theme_minimal()
 )
 
-histogram
+# Create the second histogram for basin flooding complaints
+bf_histogram = (
+    ggplot(nyc_basin_floods, aes(x='response_time_hours'))
+    + geom_histogram(binwidth=6, fill='blue', color='white', alpha=0.5)
+    + labs(
+        title='Response Times for Basin Floods by Borough',
+        x='Response Time (hours)',
+        y='Number of 311 Service Requests'
+    )
+    + facet_wrap('borough')
+    + theme_minimal()
+)
+
+# Print both histograms out and label clearly
+print(sf_histogram)
+print(bf_histogram)
 
 ```
 
+
+## Differences in Response Times For Specific Complaint Types
+
+From the two sets of histograms, we can see noticable trends inside each 
+borough for both types of 311 complaints. Of the bat there is a clear positive 
+correlation between the frequency of both complaints. If a borough shows 
+evidence of being prone to street flooding, there will be as many problems 
+with basin flooding. Lets look at each borough and see what insights we can 
+assertain. 
+
+
+### Bronx
+
+The Bronx is one of the boroughs with the least amount of 311 complaints along
+with Manhattan. There are very few street flooding complaints, but as they
+occur, they are addressed quickly. There is no tail to the Street Flooding
+histogram meaning all of the response times are rather short. Evidence shows
+that basin flooding occurances are slightly more common than street flooding. 
+There is a noticable tail leading to the right which signals a small problem 
+of dealing with these complaints in a timely manner. 
+
+
+### Brooklyn
+
+Brooklyn is one of the more busy boroughs with a high frequency in both 
+complaint types. There are extremely tall bins at the beginning of each 
+histogram which is a great sign. Despite the high frequency of 311 complaints, 
+the vast majority are addressed in a timely manner. There isn't a noticable 
+tail forming in either histogram indicating competance in addressing 311 
+complaints. 
+
+
+### Manhattan
+
+Manhattan has the lowest frequency of both types of 311 complaints. There is an 
+extremely low amount of street flooding complaints in Manhattan which indicates
+overall good plumbing and drainage in the borough. There are however certainly 
+more basin flooding occurances. One tiny detail I noticed while looking at the
+basin flooding histogram was the bumpy nature of the histogram. There isn't a 
+large concentration of basin flooding complaints but a pattern of several 311
+complaints having extremely long response times. For a sample size this small,
+it is an indication of ineptitude of addressing basin flooding occurances in a 
+timely manner. 
+
+
+### Queens
+
+Queens has the most 311 complaints for both categories out of all of the 
+boroughs. Like Brookyln, Queens has a concentration of 311 complaints at the
+left side of the graph. This is a good sign that most 311 complaints get 
+addressed quickly. But there are noticable tails to these distributions which 
+isn't something you want to see. I believe that due to Queens being the largest
+borough in size contributes to this trend. It's hard to address that many 311 
+complaints, in such a large landscape, in a quickly manner. 
+
+
+### Staten Island
+
+For Staten Island's size, they certainly rack up 311 complaints. The histograms
+show that they have a sizable number of complaints compared to the Bronx and 
+Manhattan, two boroughs that are comparable in size to Staten Island. Staten 
+Island generally has quick response times to street flooding occurances, as 
+there is no noticable tail in the distribution, but the same cannot be said for
+basin floods. There is a near 45 degree slope to the distribution of response
+times for basin flooding. An optimal shape for these distributions would be a 
+tall peak at the beginning of the distribution with a sharp and sudden drop as
+you go towards the right. Statan Island has a clear problem addressing basin
+floods in a timely manner. 
+
+
+## Creating Variable 'over3d' 
+
+The reason for creating this variable is to track the amount of 311 complaints
+that have response times over three days long. 
+
+
+```{python}
+
+# Create new column called over3d
+nyc_flood_feather.loc[:, 'over3d'] = nyc_flood_feather['response_time_hours'] > 72
+
+# Convert column from boolean to int.
+nyc_flood_feather.loc[:,'over3d'] = nyc_flood_feather['over3d'].astype(int)
+
+# Check that code generate proper column
+print(nyc_flood_feather[['response_time_hours', 'over3d']].head())
+
+```
+
+## Reponse Times over 3 Days Long by Complaint Descriptor and Borough
+
+To understand this variable better we will use the same procedure when we 
+compared response times for both 311 complaint types in each borough. 
+
+```{python}
+
+
+# Create new dataframes for the two datasets with response times over 3 days
+over3d_street_floods = nyc_street_floods[nyc_street_floods['response_time_hours'] > 72]
+over3d_basin_floods = nyc_basin_floods[nyc_basin_floods['response_time_hours'] > 72]
+
+over3d_sf_histogram = (
+    ggplot(over3d_street_floods, aes(x='response_time_hours'))
+    + geom_histogram(binwidth=3, fill='blue', color='white', alpha=0.5)
+    + labs(
+        title='Response Times for Street Flooding by Borough',
+        x='Response Time (hours)',
+        y='Number of 311 Service Requests'
+    )
+    + facet_wrap('borough')
+    + theme_minimal()
+)
+
+# Create the second histogram for basin flooding complaints
+over3d_bf_histogram = (
+    ggplot(over3d_basin_floods, aes(x='response_time_hours'))
+    + geom_histogram(binwidth=3, fill='blue', color='white', alpha=0.5)
+    + labs(
+        title='Response Times for Basin Floods by Borough',
+        x='Response Time (hours)',
+        y='Number of 311 Service Requests'
+    )
+    + facet_wrap('borough')
+    + theme_minimal()
+)
+
+print('Histogram for street flood complaints over three days long')
+print(over3d_sf_histogram)
+print('Histogram for basin flood complaints over three days long')
+print(over3d_bf_histogram)
+
+```
+
+
+### Interpreting Data and Testing Hypothesis
+
+Before looking at the histograms, I believe that the same patterns will 
+present themselves.
