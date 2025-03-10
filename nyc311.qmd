@@ -920,7 +920,6 @@ print(f'Accuracy Score : {accuracy_score(y_test, y_pred)}')
 ```
 
 
-
 ## Constructing and Interpreting the Confusion Matrix
 
 The confusion matrix is a simple 2 x 2 array that maps the four outcomes of
@@ -999,15 +998,21 @@ F1-Score (1) = 2 * (0.35 * 0.77 ) / (0.35 + 0.77) = 0.48
 
 **Accuracy**
 
-Overall, the model is correct 63% of the time. This is calculated by dividing the total number of correct predictions. (TPs + TNs) / Total Occurances
-
+Overall, the model is correct 63% of the time. This means that out of all 311 
+service requests, the model predicts the resolution time correctly for about 6
+out of 10 complaints. It's calculated by dividing the total number of correct
+predictions by the total number of complaints: (TPs + TNs) / Total Occurances. 
 
 
 ## Constructing and Plotting ROC AUC Curve 
 
+To compute and plot the ROC AUC score, we will need to use matplotlib and 
+sklearn's 'roc_curve' function. 
+
 ```{python}
 
-# Compute ROC Score
+# Compute fpr, tpr, and ROC AUC Score
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_probs)
 roc_auc = roc_auc_score(y_test, y_pred_probs)
 
 # Show model's ROC score
@@ -1018,18 +1023,40 @@ plt.figure(figsize=(6, 8))
 plt.plot(fpr, tpr, color = 'blue', label=f'ROC Curve (AUC = {roc_auc:.2f})')
 plt.plot(([0,1], [0,1]), color = 'grey', linestyle='--')
 
+# Properly label and title the graph
 plt.xlabel('FPR')
 plt.ylabel('TPR')
 plt.title('ROC Curve')
 plt.grid()
 plt.show()
 
-
 ```
 
+The ROC-AUC score stands for Reciever Operating Characteristic Score. This
+metric measures how well a model can distringuish between the two possible
+outcomes. Outcome 1 is when a 311 complaint is resolved in 3 days or less. 
+Outcome 2 is when a 311 complaint is resolved in more than 3 days. 
+
+The ROC score ranges from 0 to 1. A score of 0.5 indicates a model being
+no better than flipping a coin, random guessing. A score of 1 indicates the 
+model being perfectly capable of always telling the difference between the two
+outcomes. 
+
+Our model has a ROC score of 0.7192. This score indicates our model is
+certainly better than random guessing. Our model is able to correctly 
+differentiate the two outcomes 71.92% of the time. If you were to compare it to
+a real world situation, it's akin to recieving a 72% on a test. Certainly not
+a failing score, but leaves plenty to be desired. 
 
 
 ## Identifying Most Important Covariates of 'over3d'
+
+To understand what covariates used in our model are the most important in 
+predicting whether a 311 service reuqest takes longer than 3 days to resolve
+we must analyze our covariates' logistic regression coefficients. The larger a
+covariate's coefficient is, the stronger it's influence is on the model's 
+prediction.
+
 
 
 
