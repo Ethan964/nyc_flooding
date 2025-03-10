@@ -936,3 +936,27 @@ plt.grid()
 plt.show()
 
 ```
+
+
+
+## Constructing and Interpreting the Confusion Matrix
+
+
+
+
+
+
+## Constructing and Plotting ROC AUC Curve 
+
+
+
+
+## Identifying Most Important Covariates of 'over3d'
+
+
+
+## Summarizing Results to An Everyday New Yorker
+
+
+
+# Modeling Street Flooding Occurances By Zip Code 
