@@ -577,6 +577,7 @@ print(nyc_flood_feather[['response_time_hours', 'over3d']].head())
 
 ```
 
+
 ## Reponse Times over 3 Days Long by Complaint Descriptor and Borough
 
 To understand this variable better we will use the same procedure when we 
@@ -785,7 +786,7 @@ hours doesn't impact response times taking over 3 days to resolve.
 
 # Modeling the Occurances of Overly Long Response Times
 
-## Creating Dataset for New Logistical Modeling
+## Creating New Covariates
 
 We will pivot into further logistical modeling of the 'over3d' variable. We
 used four covariates in our past iteration of the model, but I plan to refine 
@@ -794,10 +795,144 @@ others that the model deems not useful.
 
 ```{python}
 
-print(nyc_flood_feather.head())
+# Create new category for seasons like Fall, Winter etc
+# We will first create a function that takes a month and returns the season
+nyc_flood_feather['created_time'] = pd.to_datetime(nyc_flood_feather['created_date'])
+def get_season(month):
+    if month in [12, 1, 2]:
+        return 'Winter'
+    elif month in [3, 4, 5]:
+        return 'Spring'
+    elif month in [6, 7, 8]:
+        return 'Summer'
+    else:
+        return 'Fall'
 
-lm_data = nyc_flood_feather['over3d', 'descriptor', 'borough', 'weekend', 'longitude', 'latitude'].copy()
+# Create month column for the sake of creating the season column
+nyc_flood_feather['month'] = nyc_flood_feather['created_date'].dt.month
+
+# Create season column leveraging the get_season function, drop month column
+nyc_flood_feather['season'] = nyc_flood_feather['month'].apply(get_season).drop(columns = ['month'])
+
+# Check if the get_season function works
+season_frequency = nyc_flood_feather['season'].value_counts()
+print(season_frequency)
+
+```
 
 
+## Creating Dataset for New Logistical Modeling
+
+
+
+```{python}
+
+# Create a new dataset only including covariates and predictor variable
+lm_model = nyc_flood_feather[['over3d', 'season', 'weekend', 'borough', 'descriptor', 'longitude', 'latitude']].copy()
+
+# Turn necessary covariates into dummy variables
+lm_model = pd.get_dummies(lm_model, columns=['borough', 'descriptor', 'season'], drop_first=True)
+
+# Verify that 'over3d' is in desired dtype
+lm_model['over3d'] = lm_model['over3d'].astype(int)
+print(lm_model.dtypes)
+
+
+```
+
+
+## Randomly Selecting 20% of Data for Testing Purposes
+
+For this task we will use the 'random' package. 
+
+```{python}
+
+# Import necessary packages
+import random 
+
+# Set seed to desired number
+random.seed(1234)
+
+# Find length of dataset
+df_len = int(len(lm_model))
+testing_ss = int(df_len * 0.2)
+
+# Fill testing_sample with 20% of data
+random_testing_sample = random.sample(range(df_len), testing_ss)
+
+# Initialize and fill training_sample with remaining rows
+random_training_sample = [i for i in range(df_len) if i not in random_testing_sample]
+
+
+# Populate both lists with corresponding rows
+training_df = lm_model.iloc[random_training_sample].copy()
+testing_df = lm_model.iloc[random_testing_sample].copy()
+
+# Verify proper df creation
+print(f' Length of testing data: {len(testing_df)}')
+print(f' Length of training data: {len(training_df)}')
+print('Training Dataframe:  \n')
+print(training_df.head())
+print('Testing Dataframe:  \n')
+print(testing_df.head())
+
+
+```
+
+
+## Building Logistical Model Predicting 'over3d' For 311 Complaints
+
+We will use the 80% of data housed in training_df to train the model. We will 
+then use the testing_df to test our model by having it predict whether or not a
+311 complaint will take longer than 3 days to resolve based off of several 
+covariates. 
+
+```{python}
+
+# Import necessary packages
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, confusion_matrix, roc_curve
+import matplotlib.pyplot as plt
+
+# Initialize X & y variables
+log_model = LogisticRegression(max_iter=1000, C=0.1, class_weight='balanced')
+
+# Drop rows in both dfs to clean data
+training_df_clean = training_df.dropna()
+testing_df_clean = testing_df.dropna()
+
+# Split X & y varialbes into respective training and testing dfs
+X_train = training_df_clean.drop(columns='over3d')
+X_test = testing_df_clean.drop(columns='over3d')
+y_train = training_df_clean['over3d']
+y_test = testing_df_clean['over3d']
+
+# Train model
+log_model.fit(X_train, y_train)
+
+# Create a prediction on the testing data
+y_pred = log_model.predict(X_test)
+y_pred_probs = log_model.predict_proba(X_test)[:, 1]
+
+# Compute ROC Score
+roc_auc = roc_auc_score(y_test, y_pred_probs)
+
+
+# Evaluate the model
+print(f'Accuracy Score : {accuracy_score(y_test, y_pred)}')
+print('Classification Report: ', classification_report(y_test, y_pred))
+print('ROC AUC Score: ', roc_auc)
+
+# Map AUC Score on graph
+
+plt.figure(figsize=(6, 8))
+plt.plot(fpr, tpr, color = 'blue', label=f'ROC Curve (AUC = {roc_auc:.2f})')
+plt.plot(([0,1], [0,1]), color = 'grey', linestyle='--')
+
+plt.xlabel('FPR')
+plt.ylabel('TPR')
+plt.title('ROC Curve')
+plt.grid()
+plt.show()
 
 ```
